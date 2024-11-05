@@ -3,9 +3,9 @@ import binascii
 import hashlib
 from micropython import const
 # import network
-import os
+import uos
 import socket
-import sys
+import usys
 import websocket
 import _webrepl
 
@@ -23,7 +23,7 @@ def server_handshake(cl):
     # Skip HTTP GET line.
     l = req.readline()
     if DEBUG:
-        sys.stdout.write(repr(l))
+        usys.stdout.write(repr(l))
 
     webkey = None
     upgrade = False
@@ -37,7 +37,7 @@ def server_handshake(cl):
         if l == b"\r\n":
             break
         if DEBUG:
-            sys.stdout.write(l)
+            usys.stdout.write(l)
         h, v = [x.strip() for x in l.split(b":", 1)]
         if DEBUG:
             print((h, v))
@@ -118,12 +118,12 @@ def accept_conn(listen_sock):
         send_html(cl)
         return False
 
-    prev = os.dupterm(None)
-    os.dupterm(prev)
-    if prev:
-        print("\nConcurrent WebREPL connection from", remote_addr, "rejected")
-        cl.close()
-        return False
+    # prev = uos.dupterm(None)
+    # uos.dupterm(prev)
+    # if prev:
+    #     print("\nConcurrent WebREPL connection from", remote_addr, "rejected")
+    #     cl.close()
+    #     return False
     print("\nWebREPL connection from:", remote_addr)
     client_s = cl
 
@@ -131,37 +131,26 @@ def accept_conn(listen_sock):
     ws = _webrepl._webrepl(ws)
     cl.setblocking(False)
     # notify REPL on socket incoming data (ESP32/ESP8266-only)
-    # if hasattr(os, "dupterm_notify"):
-    #     cl.setsockopt(socket.SOL_SOCKET, 20, os.dupterm_notify)
-    os.dupterm(ws)
+    # if hasattr(uos, "dupterm_notify"):
+    #     cl.setsockopt(socket.SOL_SOCKET, 20, uos.dupterm_notify)
+    uos.dupterm(ws)
 
     return True
 
 
 def stop():
     global listen_s, client_s
-    os.dupterm(None)
+    uos.dupterm(None)
     if client_s:
         client_s.close()
     if listen_s:
         listen_s.close()
 
 
-def start(port=8266, password=None, accept_handler=accept_conn):
+def start(port=8266, password="1234", accept_handler=accept_conn):
     global static_host
     stop()
-    webrepl_pass = password
-    if webrepl_pass is None:
-        try:
-            import webrepl_cfg
-
-            webrepl_pass = webrepl_cfg.PASS
-            if hasattr(webrepl_cfg, "BASE"):
-                static_host = webrepl_cfg.BASE
-        except:
-            print("WebREPL is not configured, run 'import webrepl_setup'")
-
-    _webrepl.password(webrepl_pass)
+    _webrepl.password(password)
     s = setup_conn(port, accept_handler)
 
     if accept_handler is None:
@@ -174,6 +163,3 @@ def start(port=8266, password=None, accept_handler=accept_conn):
     else:
         print("Started webrepl in manual override mode")
 
-
-def start_foreground(port=8266, password=None):
-    start(port, password, None)
