@@ -7,7 +7,6 @@ import uos
 import socket
 import usys
 import websocket
-import _webrepl
 
 listen_s = None
 client_s = None
@@ -101,39 +100,25 @@ def setup_conn(port, accept_handler):
     listen_s.bind(addr)
     listen_s.listen(1)
     if accept_handler:
-        # listen_s.setsockopt(socket.SOL_SOCKET, 20, accept_handler)
         accept_conn(listen_s)
-    # for i in (network.AP_IF, network.STA_IF):
-    #     iface = network.WLAN(i)
-    #     if iface.active():
-    #         print("WebREPL server started on http://%s:%d/" % (iface.ifconfig()[0], port))
     return listen_s
 
 
 def accept_conn(listen_sock):
-    global client_s
+    global client_s, a
+    print("waiting for connection")
     cl, remote_addr = listen_sock.accept()
-
     if not server_handshake(cl):
         send_html(cl)
         return False
-
-    # prev = uos.dupterm(None)
-    # uos.dupterm(prev)
-    # if prev:
-    #     print("\nConcurrent WebREPL connection from", remote_addr, "rejected")
-    #     cl.close()
-    #     return False
+    
     print("\nWebREPL connection from:", remote_addr)
     client_s = cl
 
     ws = websocket.websocket(cl, True)
-    ws = _webrepl._webrepl(ws)
-    cl.setblocking(False)
-    # notify REPL on socket incoming data (ESP32/ESP8266-only)
-    # if hasattr(uos, "dupterm_notify"):
-    #     cl.setsockopt(socket.SOL_SOCKET, 20, uos.dupterm_notify)
-    uos.dupterm(ws)
+    # cl.setblocking(False)
+    # uos.dupterm(ws)
+    a.ws = ws
 
     return True
 
@@ -147,19 +132,74 @@ def stop():
         listen_s.close()
 
 
-def start(port=8266, password="1234", accept_handler=accept_conn):
-    global static_host
-    stop()
-    _webrepl.password(password)
-    s = setup_conn(port, accept_handler)
+def start(port=8266, accept_handler=accept_conn):
+    global static_host, listen_s
+    # stop()
+    setup_conn(port, accept_handler)
+    while True:
+        accept_conn(listen_s)
 
-    if accept_handler is None:
-        print("Starting webrepl in foreground mode")
-        # Run accept_conn to serve HTML until we get a websocket connection.
-        while not accept_conn(s):
-            pass
-    elif password is None:
-        print("Started webrepl in normal mode")
-    else:
-        print("Started webrepl in manual override mode")
+import io
+class WebreplWrapper(io.IOBase):
+    def __init__(self, ws=None):
+        self.ws = ws
 
+    def readinto(self, buf):
+        print("readinto")
+        try:
+            if self.ws:
+                return self.ws.readinto(buf)
+            else:
+                return 0
+        except Exception as e:
+            self.ws = None
+            print("readinto", e)
+
+    def write(self, buf):
+        # print("write")
+        try:
+            if self.ws:
+                return self.ws.write(buf)
+            else:
+                return len(buf)
+        except Exception as e:
+            self.ws = None
+            print("write", e)
+
+    def ioctl(self, kind, arg):
+        print("ioctl")
+        return -1
+
+    def close(self):
+        print("close")
+        try:
+            if self.ws:
+                return self.ws.close()
+        except Exception as e:
+            self.ws = None
+            print("close", e)
+
+    def read(self, n):
+        # print("read", n)
+        try:
+            if self.ws:
+                tmp = self.ws.read(n)
+                if tmp == b'':
+                    print("EOF")
+                    self.ws = None
+                    return None
+                else:
+                    return tmp
+            else:
+                return None
+        except Exception as e:
+            self.ws = None
+            print("read", e)
+
+# 'close', 'read', 'readinto', 'readline', 'write', 'ioctl'
+
+import _thread
+_thread.start_new_thread(start, ())
+# start()
+a = WebreplWrapper(None)
+uos.dupterm(a)

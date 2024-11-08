@@ -175,20 +175,6 @@ function connect(url) {
             term.write(event.data);
         };
                 
-        var buffer = new ArrayBuffer(5);
-
-        // 使用Uint8Array视图来填充ArrayBuffer
-        var uint8View = new Uint8Array(buffer);
-
-        // 将"1234"的ASCII码值放入Uint8Array
-        uint8View[0] = "1".charCodeAt(0); // 49
-        uint8View[1] = "2".charCodeAt(0); // 50
-        uint8View[2] = "3".charCodeAt(0); // 51
-        uint8View[3] = "4".charCodeAt(0); // 52
-        uint8View[4] = "\r".charCodeAt(0);
-        // ws.write(passwd.encode("utf-8") + b"\r")
-        ws.send(uint8View);
-
     };
 
     ws.onclose = function() {
