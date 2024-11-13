@@ -7,9 +7,13 @@ import uos
 import socket
 import usys
 import websocket
+import uselect
+import _thread
 
 listen_s = None
 client_s = None
+
+lock = _thread.allocate_lock()
 
 DEBUG = 0
 
@@ -119,6 +123,7 @@ def accept_conn(listen_sock):
     # cl.setblocking(False)
     # uos.dupterm(ws)
     a.ws = ws
+    lock.release()
 
     return True
 
@@ -181,24 +186,27 @@ class WebreplWrapper(io.IOBase):
 
     def read(self, n):
         # print("read", n)
-        try:
-            if self.ws:
-                tmp = self.ws.read(n)
-                if tmp == b'':
-                    print("EOF")
-                    self.ws = None
-                    return None
-                else:
-                    return tmp
-            else:
+        # try:
+        if self.ws:
+            po = uselect.poll()
+            po.register(client_s, uselect.POLLIN)
+            po.poll()
+            tmp = self.ws.read(n)
+            if tmp == b'':
+                print("EOF")
+                self.ws = None
                 return None
-        except Exception as e:
-            self.ws = None
-            print("read", e)
+            else:
+                return tmp
+        else:
+            lock.acquire()
+            return None
+        # except Exception as e:
+            # self.ws = None
+            # print("read", e)
 
 # 'close', 'read', 'readinto', 'readline', 'write', 'ioctl'
 
-import _thread
 _thread.start_new_thread(start, ())
 # start()
 a = WebreplWrapper(None)
