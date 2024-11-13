@@ -1,0 +1,3 @@
+[submodule "micropython/asyncio/websockets"]
+	path = micropython/asyncio/websockets
+	url = https://github.com/marcidy/micropython-uasyncio-websockets
