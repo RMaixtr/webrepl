@@ -109,7 +109,7 @@ def setup_conn(port, accept_handler):
 
 
 def accept_conn(listen_sock):
-    global client_s, a
+    global client_s, dupWebrepl
     print("waiting for connection")
     cl, remote_addr = listen_sock.accept()
     if not server_handshake(cl):
@@ -122,7 +122,7 @@ def accept_conn(listen_sock):
     ws = websocket.websocket(cl, True)
     # cl.setblocking(False)
     # uos.dupterm(ws)
-    a.ws = ws
+    dupWebrepl.ws = ws
     lock.release()
 
     return True
@@ -209,5 +209,5 @@ class WebreplWrapper(io.IOBase):
 
 _thread.start_new_thread(start, ())
 # start()
-a = WebreplWrapper(None)
-uos.dupterm(a)
+dupWebrepl = WebreplWrapper(None)
+uos.dupterm(dupWebrepl)
