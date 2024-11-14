@@ -174,6 +174,8 @@ function connect(url) {
             }
             term.write(event.data);
         };
+        var uint8View = new Uint8Array([49, 50, 51, 52, 13]); // b"1234"
+        ws.send(uint8View);
                 
     };
 

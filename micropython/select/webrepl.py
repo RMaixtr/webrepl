@@ -9,6 +9,7 @@ import usys
 import websocket
 import uselect
 import _thread
+import _webrepl
 
 listen_s = None
 client_s = None
@@ -120,6 +121,7 @@ def accept_conn(listen_sock):
     client_s = cl
 
     ws = websocket.websocket(cl, True)
+    ws = _webrepl._webrepl(ws)
     # cl.setblocking(False)
     # uos.dupterm(ws)
     dupWebrepl.ws = ws
@@ -128,18 +130,19 @@ def accept_conn(listen_sock):
     return True
 
 
-def stop():
-    global listen_s, client_s
-    uos.dupterm(None)
-    if client_s:
-        client_s.close()
-    if listen_s:
-        listen_s.close()
+# def stop():
+#     global listen_s, client_s
+#     uos.dupterm(None)
+#     if client_s:
+#         client_s.close()
+#     if listen_s:
+#         listen_s.close()
 
 
-def start(port=8266, accept_handler=accept_conn):
+def start(port=8266, password="1234", accept_handler=accept_conn):
     global static_host, listen_s
     # stop()
+    _webrepl.password(password)
     setup_conn(port, accept_handler)
     while True:
         accept_conn(listen_s)
@@ -193,8 +196,8 @@ class WebreplWrapper(io.IOBase):
             po.poll()
             tmp = self.ws.read(n)
             if tmp == b'':
-                print("EOF")
                 self.ws = None
+                print("EOF")
                 return None
             else:
                 return tmp
