@@ -189,24 +189,24 @@ class WebreplWrapper(io.IOBase):
 
     def read(self, n):
         # print("read", n)
-        # try:
-        if self.ws:
-            po = uselect.poll()
-            po.register(client_s, uselect.POLLIN)
-            po.poll()
-            tmp = self.ws.read(n)
-            if tmp == b'':
-                self.ws = None
-                print("EOF")
-                return None
+        try:
+            if self.ws:
+                po = uselect.poll()
+                po.register(client_s, uselect.POLLIN)
+                po.poll()
+                tmp = self.ws.read(n)
+                if tmp == b'':
+                    self.ws = None
+                    print("EOF")
+                    return None
+                else:
+                    return tmp
             else:
-                return tmp
-        else:
-            lock.acquire()
-            return None
-        # except Exception as e:
-            # self.ws = None
-            # print("read", e)
+                lock.acquire()
+                return None
+        except Exception as e:
+            self.ws = None
+            print("read", e)
 
 # 'close', 'read', 'readinto', 'readline', 'write', 'ioctl'
 
