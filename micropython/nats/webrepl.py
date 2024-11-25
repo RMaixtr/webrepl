@@ -10,6 +10,7 @@ class WebreplWrapper(io.IOBase):
 
     def write(self, buf):
         nc.publish(b"mpy.repl.output", buf)
+        return len(buf)
 
     def read(self, n):
         if len(self.datalis) == 0:
